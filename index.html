@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Enhanced Currency Converter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .flag {
+      width: 24px;
+      height: 16px;
+      display: inline-block;
+      margin-right: 8px;
+      border: 1px solid #ccc;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 min-h-screen flex flex-col items-center p-4">
+  <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-2xl">
+    <h2 class="text-3xl font-bold text-center text-indigo-700 mb-6">🌍 Currency Converter</h2>
+
+    <div class="grid sm:grid-cols-2 gap-4 mb-4">
+      <input type="number" id="amount" placeholder="Enter amount" class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400" />
+      
+      <div class="flex space-x-2">
+        <select id="fromCurrency" class="w-1/2 p-3 border rounded-lg focus:ring-2 focus:ring-indigo-400"></select>
+        <select id="toCurrency" class="w-1/2 p-3 border rounded-lg focus:ring-2 focus:ring-indigo-400"></select>
+      </div>
+    </div>
+
+    <button onclick="convertCurrency()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition duration-200 mb-4">
+      🔁 Convert
+    </button>
+
+    <div id="result" class="text-center text-xl font-medium text-green-600 mb-6"></div>
+
+    <div>
+      <h3 class="text-xl font-semibold text-indigo-600 mb-2">📊 Exchange Rates (Base: <span id="baseCurrency">USD</span>)</h3>
+      <div id="ratesTable" class="max-h-60 overflow-y-auto border rounded-lg p-4 bg-gray-50 shadow-inner"></div>
+    </div>
+  </div>
+
+  <script>
+    const currencies = {
+      "USD": "us", "EUR": "eu", "GBP": "gb", "INR": "in", "JPY": "jp", "AUD": "au", "CAD": "ca"
+    };
+
+    const fromSelect = document.getElementById("fromCurrency");
+    const toSelect = document.getElementById("toCurrency");
+    const resultDiv = document.getElementById("result");
+    const ratesTable = document.getElementById("ratesTable");
+    const baseCurrencyLabel = document.getElementById("baseCurrency");
+
+    // Populate dropdowns
+    for (let [code, country] of Object.entries(currencies)) {
+      const optionHTML = `<option value="${code}">${code}</option>`;
+      fromSelect.innerHTML += optionHTML;
+      toSelect.innerHTML += optionHTML;
+    }
+    fromSelect.value = "USD";
+    toSelect.value = "INR";
+
+    // Add flags dynamically
+    function getOptionWithFlag(code) {
+      return `<img class="flag" src="https://flagcdn.com/h20/${currencies[code]}.png" alt="${code} flag" /> ${code}`;
+    }
+
+    async function convertCurrency() {
+      const amount = parseFloat(document.getElementById("amount").value);
+      const from = fromSelect.value;
+      const to = toSelect.value;
+
+      if (isNaN(amount) || amount <= 0) {
+        resultDiv.innerText = "❌ Please enter a valid amount.";
+        resultDiv.classList.replace("text-green-600", "text-red-600");
+        return;
+      }
+
+      const apiKey = "YOUR_API_KEY"; // Replace with your real API key
+      const url = `https://v6.exchangerate-api.com/v6/${apiKey}/latest/${from}`;
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const rate = data.conversion_rates[to];
+        const converted = (amount * rate).toFixed(2);
+
+        resultDiv.innerHTML = `✅ ${amount} ${from} = <strong>${converted} ${to}</strong>`;
+        resultDiv.classList.replace("text-red-600", "text-green-600");
+
+        baseCurrencyLabel.innerText = from;
+        populateRatesTable(data.conversion_rates);
+      } catch (err) {
+        resultDiv.innerText = "⚠️ Failed to fetch exchange rates. Check your API key or connection.";
+        resultDiv.classList.replace("text-green-600", "text-red-600");
+        console.error(err);
+      }
+    }
+
+    function populateRatesTable(rates) {
+      let html = `<table class="w-full text-left"><thead><tr><th class="py-2">Currency</th><th class="py-2">Rate</th></tr></thead><tbody>`;
+      for (let [code, rate] of Object.entries(rates)) {
+        if (currencies[code]) {
+          html += `
+            <tr class="border-t">
+              <td class="py-2">
+                <img class="inline-block flag" src="https://flagcdn.com/h20/${currencies[code]}.png" alt="${code} flag" />
+                ${code}
+              </td>
+              <td class="py-2">${rate}</td>
+            </tr>`;
+        }
+      }
+      html += "</tbody></table>";
+      ratesTable.innerHTML = html;
+    }
+
+    // Initial table load
+    convertCurrency();
+  </script>
+</body>
+</html>
